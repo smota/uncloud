@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # Frontend Services (External Access)
+  passwordmanager:
+    extends:
+      file: ./services/frontend/passwordmanager/docker-compose.yml
+      service: passwordmanager
+  
+  syncservice:
+    extends:
+      file: ./services/frontend/syncservice/docker-compose.yml
+      service: syncservice
+  
+  website:
+    extends:
+      file: ./services/frontend/website/docker-compose.yml
+      service: website
+  
+  # Backend Services (Internal Only)
+  email-backend:
+    extends:
+      file: ./services/backend/email/docker-compose.yml
+      service: email-backend
+  
+  database:
+    extends:
+      file: ./services/backend/database/docker-compose.yml
+      service: database
+  
+  pwdmanager-backend:
+    extends:
+      file: ./services/backend/pwdmanager/docker-compose.yml
+      service: pwdmanager-backend
+  
+  nas:
+    extends:
+      file: ./services/backend/nas/docker-compose.yml
+      service: nas
+  
+  # Infrastructure Services
+  traefik:
+    extends:
+      file: ./services/infrastructure/traefik/docker-compose.yml
+      service: traefik
+  
+  dns:
+    extends:
+      file: ./services/infrastructure/dns/docker-compose.yml
+      service: dns
+  
+  loadbalancer:
+    extends:
+      file: ./services/infrastructure/loadbalancer/docker-compose.yml
+      service: loadbalancer
+
+networks:
+  frontend:
+    external: true
+  backend:
+    external: true
+  infrastructure:
+    external: true
+
+volumes:
+  shared_data:
+    external: true
+  secrets:
+    external: true 

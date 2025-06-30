@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  email-backend:
+    image: dummy/email-backend:latest
+    container_name: ${PROJECT_NAME}_email_backend
+    restart: unless-stopped
+    ports:
+      - "${EMAIL_BACKEND_PORT}:25"
+    environment:
+      - SERVICE_NAME=email-backend
+      - SMTP_PASSWORD=${EMAIL_SMTP_PASSWORD}
+      - IMAP_PASSWORD=${EMAIL_IMAP_PASSWORD}
+      - EMAIL_DOMAIN=${EMAIL_DOMAIN}
+      - DATABASE_URL=postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@database:${DATABASE_PORT}/${DATABASE_NAME}
+    env_file:
+      - ../../../config/common.env
+      - ../../../secrets/.env
+    networks:
+      - backend
+    volumes:
+      - shared_data:/app/data
+      - secrets:/app/secrets:ro
+      - email_data:/app/email
+    depends_on:
+      - database
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+volumes:
+  shared_data:
+    external: true
+  secrets:
+    external: true
+  email_data:
+    external: true
+
+networks:
+  backend:
+    external: true 

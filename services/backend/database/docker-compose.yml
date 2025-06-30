@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:${DATABASE_VERSION}
+    container_name: ${PROJECT_NAME}_database
+    restart: unless-stopped
+    ports:
+      - "${DATABASE_PORT}:5432"
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_ROOT_PASSWORD=${DATABASE_ROOT_PASSWORD}
+    env_file:
+      - ../../../config/common.env
+      - ../../../secrets/.env
+    networks:
+      - backend
+    volumes:
+      - database_data:/var/lib/postgresql/data
+      - secrets:/app/secrets:ro
+      - backup_data:/app/backups
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  database_data:
+    external: true
+  secrets:
+    external: true
+  backup_data:
+    external: true
+
+networks:
+  backend:
+    external: true 

@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  pwdmanager-backend:
+    image: dummy/pwdmanager-backend:latest
+    container_name: ${PROJECT_NAME}_pwdmanager_backend
+    restart: unless-stopped
+    ports:
+      - "${PWDMANAGER_BACKEND_PORT}:8080"
+    environment:
+      - SERVICE_NAME=pwdmanager-backend
+      - ADMIN_PASSWORD=${PASSWORDMANAGER_ADMIN_PASSWORD}
+      - SECRET_KEY=${PASSWORDMANAGER_SECRET_KEY}
+      - DATABASE_URL=postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@database:${DATABASE_PORT}/${DATABASE_NAME}
+    env_file:
+      - ../../../config/common.env
+      - ../../../secrets/.env
+    networks:
+      - backend
+    volumes:
+      - shared_data:/app/data
+      - secrets:/app/secrets:ro
+      - pwdmanager_data:/app/pwdmanager
+    depends_on:
+      - database
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+volumes:
+  shared_data:
+    external: true
+  secrets:
+    external: true
+  pwdmanager_data:
+    external: true
+
+networks:
+  backend:
+    external: true 

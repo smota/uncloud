@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  passwordmanager:
+    image: dummy/passwordmanager:latest
+    container_name: ${PROJECT_NAME}_passwordmanager
+    restart: unless-stopped
+    ports:
+      - "${PASSWORDMANAGER_PORT}:80"
+    environment:
+      - SERVICE_NAME=passwordmanager
+      - DOMAIN=${SUBDOMAIN_PASSWORDMANAGER}.${DOMAIN_NAME}
+      - BACKEND_URL=http://pwdmanager-backend:${PWDMANAGER_BACKEND_PORT}
+    env_file:
+      - ../../../config/common.env
+      - ../../../secrets/.env
+    networks:
+      - frontend
+      - backend
+    volumes:
+      - shared_data:/app/data
+      - secrets:/app/secrets:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.passwordmanager.rule=Host(`${SUBDOMAIN_PASSWORDMANAGER}.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.passwordmanager.entrypoints=websecure"
+      - "traefik.http.routers.passwordmanager.tls.certresolver=letsencrypt"
+      - "traefik.http.services.passwordmanager.loadbalancer.server.port=80"
+      - "traefik.docker.network=frontend"
+    depends_on:
+      - pwdmanager-backend
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+volumes:
+  shared_data:
+    external: true
+  secrets:
+    external: true
+
+networks:
+  frontend:
+    external: true
+  backend:
+    external: true 

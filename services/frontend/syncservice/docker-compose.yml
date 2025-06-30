@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  syncservice:
+    image: dummy/syncservice:latest
+    container_name: ${PROJECT_NAME}_syncservice
+    restart: unless-stopped
+    ports:
+      - "${SYNCSERVICE_PORT}:80"
+    environment:
+      - SERVICE_NAME=syncservice
+      - DOMAIN=${SUBDOMAIN_SYNC}.${DOMAIN_NAME}
+      - BACKEND_URL=http://nas:${NAS_PORT}
+      - DATABASE_URL=postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@database:${DATABASE_PORT}/${DATABASE_NAME}
+      - ENCRYPTION_KEY=${SYNCSERVICE_ENCRYPTION_KEY}
+    env_file:
+      - ../../../config/common.env
+      - ../../../secrets/.env
+    networks:
+      - frontend
+      - backend
+    volumes:
+      - shared_data:/app/data
+      - secrets:/app/secrets:ro
+      - sync_data:/app/sync
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.syncservice.rule=Host(`${SUBDOMAIN_SYNC}.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.syncservice.entrypoints=websecure"
+      - "traefik.http.routers.syncservice.tls.certresolver=letsencrypt"
+      - "traefik.http.services.syncservice.loadbalancer.server.port=80"
+      - "traefik.docker.network=frontend"
+    depends_on:
+      - nas
+      - database
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+volumes:
+  shared_data:
+    external: true
+  secrets:
+    external: true
+  sync_data:
+    external: true
+
+networks:
+  frontend:
+    external: true
+  backend:
+    external: true 

@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  dns:
+    image: dummy/dns:latest
+    container_name: ${PROJECT_NAME}_dns
+    restart: unless-stopped
+    ports:
+      - "${DNS_PORT}:53/udp"
+      - "${DNS_PORT}:53/tcp"
+    environment:
+      - SERVICE_NAME=dns
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - DNS_API_KEY=${DNS_API_KEY}
+      - DNS_ZONE_ID=${DNS_ZONE_ID}
+      - DYNAMIC_DNS_API_KEY=${DYNAMIC_DNS_API_KEY}
+    env_file:
+      - ../../../config/common.env
+      - ../../../secrets/.env
+    networks:
+      - infrastructure
+      - frontend
+      - backend
+    volumes:
+      - dns_data:/app/dns
+      - secrets:/app/secrets:ro
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    healthcheck:
+      test: ["CMD", "nslookup", "google.com", "127.0.0.1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  dns_data:
+    external: true
+  secrets:
+    external: true
+
+networks:
+  infrastructure:
+    external: true
+  frontend:
+    external: true
+  backend:
+    external: true 

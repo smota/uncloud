@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  website:
+    image: dummy/website:latest
+    container_name: ${PROJECT_NAME}_website
+    restart: unless-stopped
+    ports:
+      - "${WEBSITE_PORT}:80"
+    environment:
+      - SERVICE_NAME=website
+      - DOMAIN=${SUBDOMAIN_WEBSITE}.${DOMAIN_NAME}
+      - DATABASE_URL=postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@database:${DATABASE_PORT}/${DATABASE_NAME}
+      - ADMIN_PASSWORD=${WEBSITE_ADMIN_PASSWORD}
+    env_file:
+      - ../../../config/common.env
+      - ../../../secrets/.env
+    networks:
+      - frontend
+      - backend
+    volumes:
+      - shared_data:/app/data
+      - secrets:/app/secrets:ro
+      - website_data:/app/website
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.website.rule=Host(`${SUBDOMAIN_WEBSITE}.${DOMAIN_NAME}`) || Host(`${DOMAIN_NAME}`)"
+      - "traefik.http.routers.website.entrypoints=websecure"
+      - "traefik.http.routers.website.tls.certresolver=letsencrypt"
+      - "traefik.http.services.website.loadbalancer.server.port=80"
+      - "traefik.docker.network=frontend"
+    depends_on:
+      - database
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+volumes:
+  shared_data:
+    external: true
+  secrets:
+    external: true
+  website_data:
+    external: true
+
+networks:
+  frontend:
+    external: true
+  backend:
+    external: true 

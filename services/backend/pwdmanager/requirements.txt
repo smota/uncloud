@@ -1,0 +1,26 @@
+# UnCloud Password Manager Backend Dependencies
+
+# Web framework
+Flask==2.3.0
+Flask-CORS==4.0.0
+Flask-RESTful==0.3.10
+
+# Database
+psycopg2-binary==2.9.5
+SQLAlchemy==2.0.0
+alembic==1.11.0
+
+# Security
+cryptography==41.0.0
+bcrypt==4.0.1
+PyJWT==2.8.0
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
+pydantic==2.0.0
+
+# Development
+pytest==7.4.0
+black==23.3.0
+flake8==6.0.0 
